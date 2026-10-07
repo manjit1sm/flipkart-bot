@@ -23,7 +23,7 @@ def main():
     options.add_argument("--headless=new")  # Keeps the browser hidden in the background
     
     # Launches the browser that bypasses bot detection
-    driver = uc.Chrome(options=options)
+    driver = uc.Chrome(options=options, version_main=154)
     
     driver.get(SHORT_URL)
     time.sleep(5) # Change this to 60 temporarily only if you ever get logged out and need to enter OTP again
