@@ -20,7 +20,7 @@ jobs:
       - name: Install Google Chrome
         uses: browser-actions/setup-chrome@v1
         with:
-          chrome-version: 'latest'
+          chrome-version: '154.0.8037.0'
 
       - name: Install dependencies
         run: |
