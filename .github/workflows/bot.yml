@@ -2,7 +2,7 @@ name: Run Flipkart Bot
 
 on:
   schedule:
-    - cron: '*/10 * * * *' # Har 10 minute mein bot chalega
+    - cron: '*/10 * * * *'
   workflow_dispatch:
 
 jobs:
