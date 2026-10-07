@@ -16,17 +16,26 @@ def send_telegram_alert():
 def main():
     print("Starting stealth background browser...")
     
-    # Setup Persistent Profile for undetected_chromedriver
+    # Setup Chrome Options for speed and stealth
     options = uc.ChromeOptions()
     profile_path = os.path.expanduser("~/Desktop/FlipkartBotProfile")
     options.user_data_dir = profile_path
-    options.add_argument("--headless=new")  # Keeps the browser hidden in the background
     
-    # Launches the browser that bypasses bot detection
+    # Speed & Headless optimizations
+    options.add_argument("--headless=new")  
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    
+    # Disable images to make page loading lightning fast
+    prefs = {"profile.managed_default_content_settings.images": 2}
+    options.add_experimental_option("prefs", prefs)
+    
+    # Launches the browser with version matching the GitHub workflow
     driver = uc.Chrome(options=options, version_main=154)
     
     driver.get(SHORT_URL)
-    time.sleep(5) # Change this to 60 temporarily only if you ever get logged out and need to enter OTP again
+    time.sleep(3) # Optimized initial load wait
     
     expanded_url = driver.current_url
     print(f"Tracking page: {expanded_url}")
@@ -34,10 +43,10 @@ def main():
     
     while True:
         try:
-            # First, check if we are on the product page. If not, go back to it.
+            # Check if we drifted away from the product page
             if driver.current_url != expanded_url:
                 driver.get(expanded_url)
-                time.sleep(5)
+                time.sleep(2)
                 
             buttons = driver.find_elements(By.TAG_NAME, "button")
             buy_button = None
@@ -49,29 +58,27 @@ def main():
             if buy_button:
                 print("Found 'Buy Now' button. Clicking to verify real stock...")
                 driver.execute_script("arguments[0].click();", buy_button)
-                time.sleep(4) 
+                time.sleep(2)  
                 
-                # Check if we successfully moved past the product page (to checkout)
+                # Check if we moved past the product page (to checkout)
                 if driver.current_url != expanded_url:
                     print("Successfully reached checkout! Sending alert...")
                     send_telegram_alert()
                     
-                    # Instead of stopping, go back to the product page to keep checking
                     print("Going back to product page to continue checking...")
                     driver.get(expanded_url)
-                    time.sleep(5)
+                    time.sleep(2)
                     continue
             
-            # If still on the product page, refresh and try again
-            if driver.current_url == expanded_url:
-                print("Not in stock or click failed. Waiting 5 seconds, then refreshing...")
-                time.sleep(5)
-                driver.refresh()
-                time.sleep(3)
+            # If still on the product page, refresh quickly for the next check
+            print("Not in stock or click failed. Waiting 2 seconds, then refreshing...")
+            time.sleep(2)
+            driver.refresh()
+            time.sleep(2)
 
         except Exception as e:
             print("Looking for button... (Waiting for page load)")
-            time.sleep(5)
+            time.sleep(3)
             driver.refresh()
 
 if __name__ == "__main__":
