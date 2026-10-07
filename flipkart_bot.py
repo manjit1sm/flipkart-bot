@@ -33,16 +33,18 @@ def send_telegram_alert(product_url):
         print(f"Failed to send telegram alert: {e}")
 
 def main():
-    print("Starting background stealth browser (Headless mode)...")
+    print("Starting Google Chrome in headless mode with version matching (154)...")
     
     options = uc.ChromeOptions()
-    profile_path = os.path.expanduser("~/Desktop/FlipkartBotProfile")
-    options.user_data_dir = profile_path
     
-    # Yeh line browser ko background mein hidden rakhegi
-    options.add_argument("--headless=new") 
+    # Enable Headless mode (hidden background run for GitHub Actions)
+    options.add_argument("--headless=new")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
     
-    driver = uc.Chrome(options=options)
+    # version_main ko 154 par lock kar diya hai taaki GitHub runner ke sath match ho sake
+    driver = uc.Chrome(options=options, version_main=154)
     
     driver.get(SHORT_URL)
     time.sleep(5) 
