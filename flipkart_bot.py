@@ -5,7 +5,15 @@ import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 
 # --- CONFIGURATION ---
-SHORT_URL = "https://dl.flipkart.com/s/CjBCamNNNN"
+# Aapke saare 5 links yahan add kar diye gaye hain:
+PRODUCT_URLS = [
+    "https://dl.flipkart.com/s/kGnRsvuuuN",
+    "https://dl.flipkart.com/s/xXV5CLNNNN",
+    "https://dl.flipkart.com/s/x1KlEnNNNN",
+    "https://dl.flipkart.com/s/kG28Y2uuuN",
+    "https://dl.flipkart.com/s/kGrfNhuuuN"
+]
+
 TELEGRAM_BOT_TOKEN = "8821071084:AAHpfzMk68sjfP9s0BuUDy2Jjo5gXklZfGE"
 TELEGRAM_CHAT_ID = "1235288153"
 
@@ -33,67 +41,64 @@ def send_telegram_alert(product_url):
         print(f"Failed to send telegram alert: {e}")
 
 def main():
-    print("Starting Google Chrome in headless mode with version matching (154)...")
+    print("Starting Multi-Product Fast Tracker...")
     
     options = uc.ChromeOptions()
     
-    # Enable Headless mode (hidden background run for GitHub Actions)
+    # Profile folder
+    profile_path = os.path.expanduser("~/Desktop/FlipkartBotProfile")
+    options.user_data_dir = profile_path
+    
+    # Headless mode (background run ke liye)
     options.add_argument("--headless=new")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     
-    # version_main ko 154 par lock kar diya hai taaki GitHub runner ke sath match ho sake
+    # Version matching
     driver = uc.Chrome(options=options, version_main=154)
     
-    driver.get(SHORT_URL)
-    time.sleep(5) 
-    
-    expanded_url = driver.current_url
-    print(f"Tracking page: {expanded_url}")
-    print("Bot is running continuously in the background...")
+    print(f"Tracking {len(PRODUCT_URLS)} products continuously...")
     
     while True:
-        try:
-            if driver.current_url != expanded_url:
-                driver.get(expanded_url)
-                time.sleep(3)
-                
-            buy_button = None
+        for url in PRODUCT_URLS:
             try:
-                buy_button = driver.find_element(By.XPATH, BUY_BUTTON_XPATH)
-            except:
-                pass
-            
-            if buy_button:
-                print("Found 'Buy Now' button! Clicking to verify checkout...")
-                current_page_url = driver.current_url
+                print(f"\nChecking product: {url}")
+                driver.get(url)
+                time.sleep(2.5) # Page load hone ka optimized wait
                 
-                driver.execute_script("arguments[0].click();", buy_button)
-                time.sleep(3) 
+                current_product_url = driver.current_url
                 
-                new_page_url = driver.current_url
+                buy_button = None
+                try:
+                    buy_button = driver.find_element(By.XPATH, BUY_BUTTON_XPATH)
+                except:
+                    pass
                 
-                if new_page_url != current_page_url or "checkout" in new_page_url.lower() or "viewcart" in new_page_url.lower():
-                    print("Checkout / New page confirmed! Sending Telegram alert with link...")
-                    send_telegram_alert(expanded_url)
-                    time.sleep(20)
+                if buy_button:
+                    print(f"Found 'Buy Now' button for {current_product_url}! Verifying...")
+                    page_before_click = driver.current_url
+                    
+                    driver.execute_script("arguments[0].click();", buy_button)
+                    time.sleep(3) 
+                    
+                    if driver.current_url != page_before_click or "checkout" in driver.current_url.lower() or "viewcart" in driver.current_url.lower():
+                        print("Checkout confirmed! Sending Telegram alert...")
+                        send_telegram_alert(current_product_url)
+                        time.sleep(15)
+                    else:
+                        print("Clicked, but URL didn't change.")
                 else:
-                    print("Clicked, but URL didn't change. Resuming...")
+                    print("Product Out of Stock. Moving to next product...")
                 
-                driver.get(expanded_url)
-                time.sleep(3)
+                time.sleep(1) # Agle product par jaldi se move karne ke liye chota gap
+                
+            except Exception as e:
+                print(f"Error checking product {url}: {e}")
                 continue
-            
-            print("Button not found yet. Waiting 4 seconds before refresh...")
-            time.sleep(4)
-            driver.refresh()
-            time.sleep(2)
-
-        except Exception as e:
-            print(f"Error encountered: {e}")
-            time.sleep(4)
-            driver.refresh()
+                
+        print("\n--- Completed one full round of all products. Restarting loop ---")
+        time.sleep(1)
 
 if __name__ == "__main__":
     main()
