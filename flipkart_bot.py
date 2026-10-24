@@ -2,6 +2,8 @@ import requests
 import time
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 # --- CONFIGURATION ---
 PRODUCT_URLS = [
@@ -12,8 +14,8 @@ PRODUCT_URLS = [
 TELEGRAM_BOT_TOKEN = "8821071084:AAHpfzMk68sjfP9s0BuUDy2Jjo5gXklZfGE"
 TELEGRAM_CHAT_ID = "1235288153"
 
-# Smart Text-Based XPath
-BUY_BUTTON_XPATH = "//*[translate(text(), 'BUY NOW', 'buy now')='buy now'] | //span[translate(text(), 'BUY NOW', 'buy now')='buy now']"
+# XPath to find Buy Now or Add to Cart buttons
+BUY_BUTTON_XPATH = "//*[translate(text(), 'BUY NOW', 'buy now')='buy now' or translate(text(), 'ADD TO CART', 'add to cart')='add to cart']"
 
 def send_telegram_alert(message_text):
     api_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -24,25 +26,20 @@ def send_telegram_alert(message_text):
     }
     try:
         requests.post(api_url, json=payload, timeout=5)
-        print("Telegram message sent successfully!")
+        print("Telegram alert sent successfully!")
     except Exception as e:
         print(f"Failed to send telegram alert: {e}")
 
 def main():
-    # TESTING ALERT: Jaise hi bot GitHub par start hoga, yeh message turant Telegram par aayega
-    send_telegram_alert("🟢 GitHub Action Test: Bot successfully started tracking Oppo K14 Plus!")
-    
-    print("Starting GitHub Actions Flipkart Tracker for Oppo K14 Plus...")
+    print("Starting Stable GitHub Actions Flipkart Tracker...")
     
     options = uc.ChromeOptions()
-    
-    # Headless mode configs for GitHub Actions Linux runner
     options.add_argument("--headless=new")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--window-size=1920,1080") # Full screen resolution for better element rendering
     
-    # Version matching for GitHub runner environment
     driver = uc.Chrome(options=options, version_main=154)
     
     print(f"Tracking {len(PRODUCT_URLS)} products...")
@@ -51,30 +48,32 @@ def main():
         try:
             print(f"\nChecking product: {url}")
             driver.get(url)
-            time.sleep(3)
             
-            current_product_url = driver.current_url
+            # Explicit wait for page elements to load safely (up to 10 seconds)
+            wait = WebDriverWait(driver, 10)
             
-            buy_button = None
+            # Close any random login popups if they block the view
             try:
-                buy_button = driver.find_element(By.XPATH, BUY_BUTTON_XPATH)
+                close_btn = driver.find_element(By.XPATH, "//button[contains(@class, '_2KpZ6l _2doB4z')]")
+                close_btn.click()
+                time.sleep(1)
             except:
                 pass
             
-            if buy_button:
-                print("Found 'Buy Now' button! Verifying...")
-                page_before_click = driver.current_url
-                
-                driver.execute_script("arguments[0].click();", buy_button)
-                time.sleep(3) 
-                
-                if driver.current_url != page_before_click or "checkout" in driver.current_url.lower() or "viewcart" in driver.current_url.lower():
-                    print("Checkout confirmed! Sending Telegram alert...")
-                    send_telegram_alert(f"🚨 Flipkart Stock Alert!\nOppo K14 Plus is IN STOCK!\n\n🔗 {current_product_url}")
-                else:
-                    print("Clicked, but URL didn't change.")
+            # Check if Buy Now or Add to Cart button is present
+            element_present = False
+            try:
+                button = wait.until(EC.presence_of_element_located((By.XPATH, BUY_BUTTON_XPATH)))
+                if button:
+                    element_present = True
+            except:
+                element_present = False
+            
+            if element_present:
+                print("Stock Detected! 'Buy Now' or 'Add to Cart' is available! Sending Telegram alert...")
+                send_telegram_alert(f"🚨 Flipkart Stock Alert!\nOppo K14 Plus is IN STOCK!\n\n🔗 {url}")
             else:
-                print("Product Out of Stock.")
+                print("Product Out of Stock or button not found.")
             
             time.sleep(2)
             
@@ -83,7 +82,7 @@ def main():
             continue
             
     driver.quit()
-    print("\n--- Completed check round ---")
+    print("\n--- Completed stable check round ---")
 
 if __name__ == "__main__":
     main()
