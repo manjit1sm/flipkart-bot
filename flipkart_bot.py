@@ -2,8 +2,6 @@ import requests
 import time
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 # --- CONFIGURATION ---
 PRODUCT_URLS = [
@@ -14,75 +12,53 @@ PRODUCT_URLS = [
 TELEGRAM_BOT_TOKEN = "8821071084:AAHpfzMk68sjfP9s0BuUDy2Jjo5gXklZfGE"
 TELEGRAM_CHAT_ID = "1235288153"
 
-# XPath to find Buy Now or Add to Cart buttons
 BUY_BUTTON_XPATH = "//*[translate(text(), 'BUY NOW', 'buy now')='buy now' or translate(text(), 'ADD TO CART', 'add to cart')='add to cart']"
 
 def send_telegram_alert(message_text):
     api_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID, 
-        "text": message_text,
-        "disable_web_page_preview": False
-    }
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message_text}
     try:
         requests.post(api_url, json=payload, timeout=5)
-        print("Telegram alert sent successfully!")
     except Exception as e:
-        print(f"Failed to send telegram alert: {e}")
+        print(f"Telegram error: {e}")
 
 def main():
-    print("Starting Stable GitHub Actions Flipkart Tracker...")
+    print("Starting Debug Flipkart Tracker...")
     
     options = uc.ChromeOptions()
     options.add_argument("--headless=new")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--window-size=1920,1080") # Full screen resolution for better element rendering
+    options.add_argument("--window-size=1920,1080")
     
     driver = uc.Chrome(options=options, version_main=154)
     
-    print(f"Tracking {len(PRODUCT_URLS)} products...")
-    
     for url in PRODUCT_URLS:
         try:
-            print(f"\nChecking product: {url}")
+            print(f"\nChecking: {url}")
             driver.get(url)
+            time.sleep(5) # Page load hone ke liye thoda zyada waqt
             
-            # Explicit wait for page elements to load safely (up to 10 seconds)
-            wait = WebDriverWait(driver, 10)
+            # Print page title and save screenshot for debugging in logs
+            print(f"Page Title: {driver.title}")
             
-            # Close any random login popups if they block the view
-            try:
-                close_btn = driver.find_element(By.XPATH, "//button[contains(@class, '_2KpZ6l _2doB4z')]")
-                close_btn.click()
-                time.sleep(1)
-            except:
-                pass
+            # Check if button exists
+            buttons = driver.find_elements(By.XPATH, BUY_BUTTON_XPATH)
             
-            # Check if Buy Now or Add to Cart button is present
-            element_present = False
-            try:
-                button = wait.until(EC.presence_of_element_located((By.XPATH, BUY_BUTTON_XPATH)))
-                if button:
-                    element_present = True
-            except:
-                element_present = False
-            
-            if element_present:
-                print("Stock Detected! 'Buy Now' or 'Add to Cart' is available! Sending Telegram alert...")
-                send_telegram_alert(f"🚨 Flipkart Stock Alert!\nOppo K14 Plus is IN STOCK!\n\n🔗 {url}")
+            if len(buttons) > 0:
+                print("SUCCESS: Buy Now / Add to Cart found!")
+                send_telegram_alert(f"🚨 Flipkart Stock Alert!\nProduct is IN STOCK!\n\n🔗 {url}")
             else:
-                print("Product Out of Stock or button not found.")
-            
-            time.sleep(2)
-            
+                print("OUT OF STOCK: Button not found on GitHub server.")
+                # Print sample page text to logs to see what Flipkart is returning
+                print("Page snippet:", driver.find_element(By.TAG_NAME, 'body').text[:300])
+                
         except Exception as e:
-            print(f"Error checking product {url}: {e}")
+            print(f"Error: {e}")
             continue
             
     driver.quit()
-    print("\n--- Completed stable check round ---")
 
 if __name__ == "__main__":
     main()
