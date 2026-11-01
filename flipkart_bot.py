@@ -6,7 +6,7 @@ import traceback
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 
-# --- CONFIGURATION (Updated with your Oppo K14 Plus links) ---
+# --- CONFIGURATION (Oppo K14 Plus links) ---
 PRODUCT_URLS = [
     "https://www.flipkart.com/oppo-k14-plus-5g-solar-orange-128-gb/p/itm6b2b1016fd57a?pid=MOBHR3ZYZXYQ2GYK&param=327476&BU=Mobile&pageUID=1793506636583",
     "https://www.flipkart.com/oppo-k14-plus-5g-star-white-128-gb/p/itm6b2b1016fd57a?pid=MOBHR3ZYWM7R57PW&marketplace=FLIPKART&lid=LSTMOBHR3ZYWM7R57PWKRABGU&pageUID=1793506636583"
@@ -21,7 +21,7 @@ def send_telegram_alert(product_url):
     api_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     message = (
         "🚨 Flipkart Stock Alert (Oppo K14 Plus) 🚨\n\n"
-        "Product is IN STOCK and successfully reached checkout!\n\n"
+        "Product is IN STOCK and successfully reached checkout/cart!\n\n"
         f"🔗 **Product Link:**\n{product_url}"
     )
     payload = {
@@ -36,7 +36,7 @@ def send_telegram_alert(product_url):
         print(f"Failed to send telegram alert: {e}")
 
 def main():
-    print("Starting Flipkart Fast Tracker with Oppo K14 Plus links...")
+    print("Starting Flipkart Fast Tracker with improved verification...")
     
     options = uc.ChromeOptions()
     options.add_argument("--headless=new")
@@ -112,16 +112,29 @@ def main():
                     pass
                 
                 if buy_button:
-                    print(f"Found 'Buy Now' button! Verifying...")
-                    driver.execute_script("arguments[0].click();", buy_button)
-                    time.sleep(3) 
+                    print(f"Found 'Buy Now' button! Clicking...")
+                    try:
+                        driver.execute_script("arguments[0].click();", buy_button)
+                    except Exception as click_err:
+                        print(f"Click error: {click_err}")
+                        buy_button.click()
+                        
+                    time.sleep(4)  # Redirect hone ke liye thoda aur time dein
                     
-                    if driver.current_url != page_before_click or "checkout" in driver.current_url.lower() or "viewcart" in driver.current_url.lower():
-                        print("Checkout confirmed! Sending Telegram alert...")
+                    current_after_click = driver.current_url
+                    page_title = driver.title.lower()
+                    
+                    # Enhanced verification for SPA (URL, Title, or Page Source check)
+                    if current_after_click != page_before_click or "checkout" in current_after_click.lower() or "viewcart" in current_after_click.lower() or "cart" in page_title or "order" in page_title:
+                        print("Checkout/Cart confirmed! Sending Telegram alert...")
                         send_telegram_alert(current_product_url)
                         time.sleep(15)
                     else:
-                        print("Clicked, but URL didn't change.")
+                        print(f"Clicked, but URL is still same: {current_after_click}")
+                        if "cart" in driver.page_source.lower() or "delivery" in driver.page_source.lower():
+                            print("Cart/Delivery elements found in page source! Sending alert...")
+                            send_telegram_alert(current_product_url)
+                            time.sleep(15)
                 else:
                     print("Product Out of Stock. Moving to next product...")
                 
