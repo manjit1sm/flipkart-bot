@@ -6,9 +6,10 @@ import traceback
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 
-# --- CONFIGURATION (Updated with Oppo K14 Plus Links for Testing) ---
+# --- CONFIGURATION (Updated with your Oppo K14 Plus links) ---
 PRODUCT_URLS = [
-    "https://www.flipkart.com/search?q=oppo+k14+plus",  # Aap yahan exact product link bhi daal sakte hain
+    "https://www.flipkart.com/oppo-k14-plus-5g-solar-orange-128-gb/p/itm6b2b1016fd57a?pid=MOBHR3ZYZXYQ2GYK&param=327476&BU=Mobile&pageUID=1793506636583",
+    "https://www.flipkart.com/oppo-k14-plus-5g-star-white-128-gb/p/itm6b2b1016fd57a?pid=MOBHR3ZYWM7R57PW&marketplace=FLIPKART&lid=LSTMOBHR3ZYWM7R57PWKRABGU&pageUID=1793506636583"
 ]
 
 TELEGRAM_BOT_TOKEN = "8821071084:AAHpfzMk68sjfP9s0BuUDy2Jjo5gXklZfGE"
@@ -19,7 +20,7 @@ BUY_BUTTON_XPATH = "//*[translate(text(), 'BUY NOW', 'buy now')='buy now'] | //s
 def send_telegram_alert(product_url):
     api_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     message = (
-        "🚨 Flipkart Stock Alert (Test Trial) 🚨\n\n"
+        "🚨 Flipkart Stock Alert (Oppo K14 Plus) 🚨\n\n"
         "Product is IN STOCK and successfully reached checkout!\n\n"
         f"🔗 **Product Link:**\n{product_url}"
     )
@@ -122,7 +123,7 @@ def main():
                     else:
                         print("Clicked, but URL didn't change.")
                 else:
-                    print("Product Out of Stock or Search page. Moving to next product...")
+                    print("Product Out of Stock. Moving to next product...")
                 
                 time.sleep(1)
                 
