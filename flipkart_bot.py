@@ -25,7 +25,7 @@ def main():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     
-    driver = uc.Chrome(options=options, version_main=156)
+    driver = uc.Chrome(options=options)
     
     # --- COOKIES LOAD KARNE KA STEP ---
     try:
