@@ -6,10 +6,13 @@ import traceback
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 
-# --- CONFIGURATION (Oppo K14 Plus links) ---
+# --- CONFIGURATION ---
 PRODUCT_URLS = [
-    "https://www.flipkart.com/oppo-k14-plus-5g-solar-orange-128-gb/p/itm6b2b1016fd57a?pid=MOBHR3ZYZXYQ2GYK&param=327476&BU=Mobile&pageUID=1793506636583",
-    "https://www.flipkart.com/oppo-k14-plus-5g-star-white-128-gb/p/itm6b2b1016fd57a?pid=MOBHR3ZYWM7R57PW&marketplace=FLIPKART&lid=LSTMOBHR3ZYWM7R57PWKRABGU&pageUID=1793506636583"
+    "https://dl.flipkart.com/s/kGnRsvuuuN",
+    "https://dl.flipkart.com/s/xXV5CLNNNN",
+    "https://dl.flipkart.com/s/x1KlEnNNNN",
+    "https://dl.flipkart.com/s/kG28Y2uuuN",
+    "https://dl.flipkart.com/s/kGrfNhuuuN"
 ]
 
 TELEGRAM_BOT_TOKEN = "8821071084:AAHpfzMk68sjfP9s0BuUDy2Jjo5gXklZfGE"
@@ -20,8 +23,8 @@ BUY_BUTTON_XPATH = "//*[translate(text(), 'BUY NOW', 'buy now')='buy now'] | //s
 def send_telegram_alert(product_url):
     api_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     message = (
-        "🚨 Flipkart Stock Alert (Oppo K14 Plus) 🚨\n\n"
-        "Product is IN STOCK and successfully reached checkout/cart!\n\n"
+        "🚨 Flipkart Stock Alert 🚨\n\n"
+        "Product is IN STOCK and successfully reached checkout!\n\n"
         f"🔗 **Product Link:**\n{product_url}"
     )
     payload = {
@@ -36,7 +39,7 @@ def send_telegram_alert(product_url):
         print(f"Failed to send telegram alert: {e}")
 
 def main():
-    print("Starting Flipkart Fast Tracker with improved verification...")
+    print("Starting Flipkart Fast Tracker with flipkart.json...")
     
     options = uc.ChromeOptions()
     options.add_argument("--headless=new")
@@ -56,6 +59,7 @@ def main():
             with open("flipkart.json", "r") as file:
                 content = file.read().strip()
                 if content.startswith('['):
+                    # Agar JSON format hua
                     cookies = json.loads(content)
                     for cookie in cookies:
                         if 'domain' in cookie:
@@ -66,6 +70,7 @@ def main():
                         except:
                             pass
                 else:
+                    # Agar Netscape/TXT format hua
                     lines = content.split('\n')
                     for line in lines:
                         if line.startswith('#') or not line.strip():
@@ -112,29 +117,16 @@ def main():
                     pass
                 
                 if buy_button:
-                    print(f"Found 'Buy Now' button! Clicking...")
-                    try:
-                        driver.execute_script("arguments[0].click();", buy_button)
-                    except Exception as click_err:
-                        print(f"Click error: {click_err}")
-                        buy_button.click()
-                        
-                    time.sleep(4)  # Redirect hone ke liye thoda aur time dein
+                    print(f"Found 'Buy Now' button! Verifying...")
+                    driver.execute_script("arguments[0].click();", buy_button)
+                    time.sleep(3) 
                     
-                    current_after_click = driver.current_url
-                    page_title = driver.title.lower()
-                    
-                    # Enhanced verification for SPA (URL, Title, or Page Source check)
-                    if current_after_click != page_before_click or "checkout" in current_after_click.lower() or "viewcart" in current_after_click.lower() or "cart" in page_title or "order" in page_title:
-                        print("Checkout/Cart confirmed! Sending Telegram alert...")
+                    if driver.current_url != page_before_click or "checkout" in driver.current_url.lower() or "viewcart" in driver.current_url.lower():
+                        print("Checkout confirmed! Sending Telegram alert...")
                         send_telegram_alert(current_product_url)
                         time.sleep(15)
                     else:
-                        print(f"Clicked, but URL is still same: {current_after_click}")
-                        if "cart" in driver.page_source.lower() or "delivery" in driver.page_source.lower():
-                            print("Cart/Delivery elements found in page source! Sending alert...")
-                            send_telegram_alert(current_product_url)
-                            time.sleep(15)
+                        print("Clicked, but URL didn't change.")
                 else:
                     print("Product Out of Stock. Moving to next product...")
                 
